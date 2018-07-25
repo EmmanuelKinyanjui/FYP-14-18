@@ -8,6 +8,7 @@ Presented as _Final Year Project for BSc Mechatronic Engineering, JKUAT_
 * **EN292-0464/2013 - Antony Kariuki**
 * **EN292-0467/2013 - Dennis Chang'ach**
 
+**Project Description**
 
 
 
