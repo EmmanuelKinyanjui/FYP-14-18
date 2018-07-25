@@ -30,7 +30,11 @@ const int capSensor =2;
 const int crusherLS = 51;
 
 //LDR
-const int ldr=A8;
+const int glass_ldr=A8;
+const int plastic_ldr = A9;
+
+//Crusher status
+bool crusherHasRun;
 
 ////counter lcd///
 rgb_lcd lcd;
@@ -80,15 +84,17 @@ U8GLIB_ST7920_128X64_1X u8g(39, 41, 43); //pin connection(E,r/w,rs)
 void setup() {
   interrupts();
   attachInterrupt(digitalPinToInterrupt(inductiveSensor), inductiveFunc ,FALLING);
-  attachInterrupt(digitalPinToInterrupt(binActivator), crusherActivate ,RISING);
+ // attachInterrupt(digitalPinToInterrupt(binActivator), crusherActivate ,HIGH);
   attachInterrupt(digitalPinToInterrupt(capSensor), capacitiveFunc ,FALLING);
 
 /// Geared motor///
   pinMode(motorPin1,OUTPUT);
   pinMode(motorPin2,OUTPUT);
 
-//ldr
-  pinMode(ldr,INPUT);
+//ldr setup
+
+  pinMode(plastic_ldr,INPUT);
+  pinMode(glass_ldr,INPUT);
     
 ///linear motor///
   pinMode(motorPin3,OUTPUT);
@@ -100,7 +106,9 @@ void setup() {
    myServoTwo.attach(servoTwo);
    myServoTwo.write(0); //up position
    myServoThree.attach(servoThree);
-   myServoThree.write(80); //up position
+   myServoThree.write(0); //up position
+   delay(2000);
+   myServoThree.write(75); //up position
 
   //serial configurations
   Serial.begin(9600);
@@ -139,75 +147,41 @@ void setup() {
    clear_screen();////clear screen
    introduction_message(); ///intro message 
    clear_screen();////clear screen
-    
    counter_start_message(); // start counter from zero
 
-    //start the conveyor motor
+    //start the conveyor motor and retract the linear motor
     motor_run();
     linear_motor_retract();
-
-
 }
+
+
 //run the code forever
 void loop() {
 
-//read the value of the LDR
-int ldr_value = analogRead(ldr);
-Serial.print("LDR:"); 
-Serial.println(ldr_value);
-Serial.print("Limit status:");
-Serial.println(digitalRead(binActivator));
+///check the plastic LDR value
+if(!plastic_ldr)
+  {//if it is too low, means the item is not transparent hence open the path
+    myServoThree.write(0);
+    delay(2000);
+    myServoThree.write(75);
+  }
 
-
-//if(ldr_value<10)
-//  {
-//    myServoThree.write(0);
-//    delay(2500);
-//    myServoThree.write(90);
-//    clear_screen();
-//    plastic_message();
-//    plastic_counter++;
-//  }
-
-////check if the LDR has been blocked by an opaque material
-//if(metal_counter%3==0&&metal_counter>0)
-//  {
-//    linear_actuator_message();
-//    linear_motor_activate();
-//    delay(10000);
-//    linear_motor_retract();
-//    delay(1000);
-////    myServoThree.write(0);
-////    delay(2500);
-////    myServoThree.write(90);
-////    clear_screen();
-////    plastic_message();
-////    plastic_counter++;
-// }
-// else
-//  {
-//    idle_message();
-//    counter_autoscroll_display();
-//    linear_motor_retract();
-//  }
-
-idle_message();
- counter_autoscroll_display();
-Serial.print("Crusher");
-Serial.println(digitalRead(crusherLS));
-//  Serial.println(digitalRead(binActivator));
-//  delay(10);
-//// delay(3000);
-//// resetServo(); 
-// 
-//
-// //check the state of the crusher limit switch
+//check if the LDR has been blocked by an opaque material
+if(metal_counter%3==0&&crusherHasRun == false)
+  {
+    linear_actuator_message();
+    linear_motor_activate();
+  }
+ // //check the state of the crusher limit switch
  if(digitalRead(crusherLS) == HIGH)
   {
     linear_motor_retract();
     delay(7000);
     linear_motor_stop();
   }
+
+idle_message();
+counter_autoscroll_display();
 }
 
 
@@ -303,8 +277,9 @@ void welcome_message(){
  
   u8g.firstPage();  
   do {
-//u8g.setFont(u8g_font_gdb12);
-  u8g.setFont(u8g_font_osb21);
+   u8g.setColorIndex(1);
+   u8g.setFont(u8g_font_gdb12);
+  //u8g.setFont(u8g_font_osb21);
    
    u8g.drawStr( 0, 35, "Welcome");
    
@@ -393,7 +368,8 @@ void linear_actuator_message() {
   
 }
 void idle_message(){
- 
+
+ u8g.setColorIndex(1);
  u8g.setFont(u8g_font_6x10);
   u8g.setFontRefHeightExtendedText();
   u8g.setDefaultForegroundColor();
@@ -403,7 +379,7 @@ void idle_message(){
  u8g.firstPage();  
   do {
 
- u8g.drawStr( 0, 0, "System Loading");
+ u8g.drawStr( 0, 0, "Material Detection");
   u8g.drawLine(7+a, 10, 40, 55);
   u8g.drawLine(7+a*2, 10, 60, 55);
   u8g.drawLine(7+a*3, 10, 80, 55);
@@ -421,15 +397,14 @@ u8g.firstPage();
 
 
 ///********************************LDR FUNCTION*************************************///
-bool check_ldr()
-{
+bool check_glass_ldr(){
 //read the value of the LDR
-int ldr_value = analogRead(ldr);
+int ldr_value = analogRead(glass_ldr);
 Serial.print("LDR:"); 
 Serial.println(ldr_value);
 sei();
 delay(500);
-if(ldr_value>80 && ldr_value<120)
+if(ldr_value>50 && ldr_value<120)
   {
     return true;
   }
@@ -438,7 +413,22 @@ if(ldr_value>80 && ldr_value<120)
   return false;
   }
 }
-
+bool check_plastic_ldr(){
+//read the value of the LDR
+int ldr_value = analogRead(plastic_ldr);
+Serial.print("LDR:"); 
+Serial.println(ldr_value);
+sei();
+delay(500);
+if(ldr_value>50 && ldr_value<120)
+  {
+    return true;
+  }
+ else
+ {
+  return false;
+  }
+}
 ///********************************INTERRUPT FUNCTIONS*************************************
 //function call after an interrupt is raised on the inductive sensor
 void inductiveFunc(){
@@ -449,13 +439,14 @@ void inductiveFunc(){
   delay(2000);
   myServoOne.write(90);
   cli();
+  crusherHasRun = false;
   
 }
 //function call after an interrupt is raised on the cap sensor
 void capacitiveFunc(){
   motor_stop();
   
-  if(check_ldr())
+  if(check_glass_ldr())
   {
     glass_counter++;
     glass_message();
@@ -474,15 +465,18 @@ void capacitiveFunc(){
   
 
 }
-//function call to activate crusher
-void crusherActivate(){
-Serial.println("Crusher Activating");
-sei();
-  delay(500);
-linear_actuator_message();
-linear_motor_activate();
-cli();
-}
+
+
+
+////function call to activate crusher
+//void crusherActivate(){
+//Serial.println("Crusher Activating");
+//sei();
+//  delay(500);
+//linear_actuator_message();
+//linear_motor_activate();
+//cli();
+//}
 
 
 
