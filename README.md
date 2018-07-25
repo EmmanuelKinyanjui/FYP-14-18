@@ -1,4 +1,4 @@
-#**FYP-14-18 - The Design and Fabrication of A Garbage Waste Seperation and Sorting Machine**
+#### **FYP-14-18 - The Design and Fabrication of A Garbage Waste Seperation and Sorting Machine**
 
 Presented as _Final Year Project for BSc Mechatronic Engineering, JKUAT_
 
