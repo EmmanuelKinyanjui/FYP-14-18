@@ -159,10 +159,11 @@ void setup() {
 void loop() {
 
 ///check the plastic LDR value
-if(!plastic_ldr)
+if(!check_plastic_ldr())
   {//if it is too low, means the item is not transparent hence open the path
+    Serial.println("I am here");
     myServoThree.write(0);
-    delay(2000);
+    delay(3000);
     myServoThree.write(75);
   }
 
@@ -400,7 +401,7 @@ u8g.firstPage();
 bool check_glass_ldr(){
 //read the value of the LDR
 int ldr_value = analogRead(glass_ldr);
-Serial.print("LDR:"); 
+Serial.print("Glass LDR:"); 
 Serial.println(ldr_value);
 sei();
 delay(500);
@@ -415,18 +416,16 @@ if(ldr_value>50 && ldr_value<120)
 }
 bool check_plastic_ldr(){
 //read the value of the LDR
-int ldr_value = analogRead(plastic_ldr);
-Serial.print("LDR:"); 
+int ldr_value = digitalRead(plastic_ldr);
+Serial.print("Plastic LDR:"); 
 Serial.println(ldr_value);
-sei();
-delay(500);
-if(ldr_value>50 && ldr_value<120)
+if(ldr_value == LOW)
   {
-    return true;
+    return false;
   }
  else
  {
-  return false;
+  return true;
   }
 }
 ///********************************INTERRUPT FUNCTIONS*************************************
