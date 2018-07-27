@@ -30,7 +30,7 @@ const int capSensor =2;
 const int crusherLS = 51;
 
 //LDR
-const int glass_ldr=A8;
+const int glass_ldr = A8;
 const int plastic_ldr = A9;
 
 //Crusher status
