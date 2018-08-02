@@ -1,3 +1,20 @@
+/*
+ * FYP-14-18 Garbage Separation and Sorting System
+ * 
+ * PRESENTED BY:
+ * Dennis Chang'ach - EN292-0467/2013
+ * Antony Kariuki - EN292-0464/2013
+ * Emmanuel Kinyanjui - EN292-0450/2013
+ * 
+ * SUPERVISORS
+ * Anthony Ka
+ * 
+ * 
+ * 
+ */
+
+
+
 #include <Servo.h>
 #include <Wire.h>
 #include "rgb_lcd.h"
@@ -80,22 +97,22 @@ Servo myServoTwo;
 Servo myServoThree;
 U8GLIB_ST7920_128X64_1X u8g(39, 41, 43); //pin connection(E,r/w,rs)
 
-///***************************BASE FUNCTIONS*****************************/
+///***************************BASE FUNCTIONS***********************************///
 //initialize the code when activated
 void setup() {
   interrupts();
   attachInterrupt(digitalPinToInterrupt(inductiveSensor), inductiveFunc ,FALLING);
   attachInterrupt(digitalPinToInterrupt(crusherLS), crusherRetractFunc ,RISING);
   attachInterrupt(digitalPinToInterrupt(capSensor), capacitiveFunc ,FALLING);
-  attachInterrupt(digitalPinToInterrupt(plastic_ldr_digital), plasticCheckFunc ,HIGH);
+//  attachInterrupt(digitalPinToInterrupt(plastic_ldr_digital), plasticCheckFunc ,FALLING);
   
 /// Geared motor///
   pinMode(motorPin1,OUTPUT);
   pinMode(motorPin2,OUTPUT);
 
 //ldr setup
-  pinMode(plastic_ldr_digital,INPUT);
-  pinMode(plastic_ldr_analog,INPUT);
+  pinMode(plastic_ldr_digital,INPUT_PULLUP);
+  pinMode(plastic_ldr_analog,INPUT_PULLUP);
   pinMode(glass_ldr,INPUT);
     
 ///linear motor///
@@ -120,7 +137,8 @@ void setup() {
     }
     else if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
       u8g.setHiColorByRGB(255,255,255);}
-  
+
+   pinMode(8,OUTPUT);
    lcd.begin(16,2); 
    lcd.setRGB(colorR, colorG, colorB);
    int charBitmapSize = (sizeof(charBitmap ) / sizeof (charBitmap[0]));
@@ -156,7 +174,11 @@ void setup() {
 }
 //run the code repeatedly
 void loop() {
-
+Serial.print("Plastic");
+Serial.println(analogRead(plastic_ldr_analog));
+Serial.print("Glass");
+Serial.println(analogRead(glass_ldr));
+delay(500);
 //crusher checker
 if(metal_counter%3==0 && metal_counter>0 &&crusherHasRun == false)
   {
@@ -164,8 +186,6 @@ if(metal_counter%3==0 && metal_counter>0 &&crusherHasRun == false)
     motor_stop();
     linear_actuator_message();
     linear_motor_activate();
-  
-    
   }
 idle_message();
 counter_autoscroll_display();
@@ -173,7 +193,7 @@ counter_autoscroll_display();
 
 
 
-///***************************MOTOR FUNCTIONS**********************************////
+///***************************MOTOR FUNCTIONS**********************************///
 //motor activate
 void motor_run(){
   analogWrite(enablePin,255);
@@ -244,7 +264,7 @@ lcd.setCursor(1, 1);
     lcd.print("G:");
     lcd.print(glass_counter);
     lcd.print(" ");
-    lcd.print("P");
+    lcd.print("P:");
     lcd.print(plastic_counter);
     lcd.print(" ");
     //delay(1000);
@@ -403,8 +423,8 @@ int ldr_value = analogRead(plastic_ldr_analog);
 Serial.print("Plastic LDR:"); 
 Serial.println(ldr_value);
 sei();
-delay(500);
-if(ldr_value < 200)
+delay(1000);
+if(ldr_value < 350)
   {
     return false;
   }
@@ -453,14 +473,16 @@ void capacitiveFunc(){
 //check the plastic ldr
 void plasticCheckFunc(){
   motor_stop();
+
   ///check the plastic LDR value
   if(!check_plastic_ldr())
   {//if it is too low, means the item is not transparent hence open the path
     Serial.println("I am here");
     myServoThree.write(0);
     sei();
-    motor_run();
     delay(2000);
+    motor_run();
+    delay(3000);
     myServoThree.write(75);
     cli();
   }
@@ -476,7 +498,9 @@ void plasticCheckFunc(){
 ////function call to retract crusher
 void crusherRetractFunc(){
 linear_motor_retract();
-    motor_run();
+sei();
+delay(5000);
+motor_run();
 }
 
 
