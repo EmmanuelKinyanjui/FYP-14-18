@@ -104,7 +104,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(inductiveSensor), inductiveFunc ,FALLING);
   attachInterrupt(digitalPinToInterrupt(crusherLS), crusherRetractFunc ,RISING);
   attachInterrupt(digitalPinToInterrupt(capSensor), capacitiveFunc ,FALLING);
-//  attachInterrupt(digitalPinToInterrupt(plastic_ldr_digital), plasticCheckFunc ,FALLING);
+  attachInterrupt(digitalPinToInterrupt(plastic_ldr_digital), plasticCheckFunc ,FALLING);
   
 /// Geared motor///
   pinMode(motorPin1,OUTPUT);
@@ -175,9 +175,7 @@ void setup() {
 //run the code repeatedly
 void loop() {
 Serial.print("Plastic");
-Serial.println(analogRead(plastic_ldr_analog));
-Serial.print("Glass");
-Serial.println(analogRead(glass_ldr));
+Serial.println(digitalRead(plastic_ldr_digital));
 delay(500);
 //crusher checker
 if(metal_counter%3==0 && metal_counter>0 &&crusherHasRun == false)
@@ -424,7 +422,7 @@ Serial.print("Plastic LDR:");
 Serial.println(ldr_value);
 sei();
 delay(1000);
-if(ldr_value < 350)
+if(ldr_value < 500)
   {
     return false;
   }
@@ -477,12 +475,11 @@ void plasticCheckFunc(){
   ///check the plastic LDR value
   if(!check_plastic_ldr())
   {//if it is too low, means the item is not transparent hence open the path
-    Serial.println("I am here");
-    myServoThree.write(0);
     sei();
+    myServoThree.write(0);
     delay(2000);
     motor_run();
-    delay(3000);
+    delay(1000);
     myServoThree.write(75);
     cli();
   }
