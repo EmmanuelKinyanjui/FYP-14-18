@@ -23,24 +23,25 @@ const int enablePin2=29;
 
 //Interrupt Pins
 const int inductiveSensor = 3;
-const int binActivator = 18;
+const int binActivator = 49;
 const int capSensor =2;
 
 //limitSwitch
-const int crusherLS = 51;
+const int crusherLS = 18;
 
 //LDR
 const int glass_ldr = A8;
-const int plastic_ldr = A9;
+const int plastic_ldr_analog = A6;
+const int plastic_ldr_digital = 19;
 
 //Crusher status
 bool crusherHasRun;
 
 ////counter lcd///
 rgb_lcd lcd;
-const int colorR = 0;
-const int colorG = 0;
-const int colorB = 200;
+const int colorR = 255;
+const int colorG = 255;
+const int colorB = 255;
 
 ////gLCD char bitmap
 const uint8_t charBitmap[][8] = {
@@ -84,31 +85,24 @@ U8GLIB_ST7920_128X64_1X u8g(39, 41, 43); //pin connection(E,r/w,rs)
 void setup() {
   interrupts();
   attachInterrupt(digitalPinToInterrupt(inductiveSensor), inductiveFunc ,FALLING);
- // attachInterrupt(digitalPinToInterrupt(binActivator), crusherActivate ,HIGH);
+  attachInterrupt(digitalPinToInterrupt(crusherLS), crusherRetract ,RISING);
   attachInterrupt(digitalPinToInterrupt(capSensor), capacitiveFunc ,FALLING);
-
+  attachInterrupt(digitalPinToInterrupt(plastic_ldr_digital), plasticCheck ,HIGH);
+  
 /// Geared motor///
   pinMode(motorPin1,OUTPUT);
   pinMode(motorPin2,OUTPUT);
 
 //ldr setup
-
-  pinMode(plastic_ldr,INPUT);
+  pinMode(plastic_ldr_digital,INPUT);
+  pinMode(plastic_ldr_analog,INPUT);
   pinMode(glass_ldr,INPUT);
     
 ///linear motor///
   pinMode(motorPin3,OUTPUT);
   pinMode(motorPin4,OUTPUT);
 
-  //servo////
-   myServoOne.attach(servoOne);
-   myServoOne.write(90); //up position
-   myServoTwo.attach(servoTwo);
-   myServoTwo.write(0); //up position
-   myServoThree.attach(servoThree);
-   myServoThree.write(0); //up position
-   delay(2000);
-   myServoThree.write(75); //up position
+ 
 
   //serial configurations
   Serial.begin(9600);
@@ -127,15 +121,11 @@ void setup() {
     else if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
       u8g.setHiColorByRGB(255,255,255);}
   
-    pinMode(8, OUTPUT);
-
-    ///counter lcd configuration////
-   lcd.begin(16, 2);
-    
+   lcd.begin(16,2); 
    lcd.setRGB(colorR, colorG, colorB);
    int charBitmapSize = (sizeof(charBitmap ) / sizeof (charBitmap[0]));
 
-   lcd.begin(16,2);               // initialize the lcd 
+              // initialize the lcd 
 
    for ( int i = 0; i < charBitmapSize; i++ )
    {
@@ -149,6 +139,17 @@ void setup() {
    clear_screen();////clear screen
    counter_start_message(); // start counter from zero
 
+   //servo////
+   myServoOne.attach(servoOne);
+   myServoOne.write(90); //up position
+   myServoTwo.attach(servoTwo);
+   myServoTwo.write(0); //up position
+   myServoThree.attach(servoThree);
+   myServoThree.write(0); //up position
+   delay(2000);
+   myServoThree.write(75); //up position
+
+
     //start the conveyor motor and retract the linear motor
     motor_run();
     linear_motor_retract();
@@ -158,29 +159,18 @@ void setup() {
 //run the code forever
 void loop() {
 
-///check the plastic LDR value
-if(!check_plastic_ldr())
-  {//if it is too low, means the item is not transparent hence open the path
-    Serial.println("I am here");
-    myServoThree.write(0);
-    delay(3000);
-    myServoThree.write(75);
-  }
+
 
 //check if the LDR has been blocked by an opaque material
-if(metal_counter%3==0&&crusherHasRun == false)
+if(metal_counter%3==0 && metal_counter>0 &&crusherHasRun == false)
   {
+    crusherHasRun = true;
+    motor_stop();
     linear_actuator_message();
     linear_motor_activate();
+  
+    
   }
- // //check the state of the crusher limit switch
- if(digitalRead(crusherLS) == HIGH)
-  {
-    linear_motor_retract();
-    delay(7000);
-    linear_motor_stop();
-  }
-
 idle_message();
 counter_autoscroll_display();
 }
@@ -369,10 +359,10 @@ void linear_actuator_message() {
   
 }
 void idle_message(){
-
+ clear_screen();
  u8g.setColorIndex(1);
  u8g.setFont(u8g_font_6x10);
-  u8g.setFontRefHeightExtendedText();
+ u8g.setFontRefHeightExtendedText();
   u8g.setDefaultForegroundColor();
   u8g.setFontPosTop();
   int a;
@@ -387,13 +377,13 @@ void idle_message(){
   u8g.drawLine(7+a*4, 10, 100, 55);
   } while( u8g.nextPage() ); 
 }
-  
+  clear_screen();
   }
 void clear_screen(){
 u8g.firstPage();  
     do {
     } while( u8g.nextPage() );
-   delay(5);
+   //delay(5);
 }
 
 
@@ -416,10 +406,12 @@ if(ldr_value>50 && ldr_value<120)
 }
 bool check_plastic_ldr(){
 //read the value of the LDR
-int ldr_value = digitalRead(plastic_ldr);
+int ldr_value = analogRead(plastic_ldr_analog);
 Serial.print("Plastic LDR:"); 
 Serial.println(ldr_value);
-if(ldr_value == LOW)
+sei();
+delay(500);
+if(ldr_value < 200)
   {
     return false;
   }
@@ -444,7 +436,6 @@ void inductiveFunc(){
 //function call after an interrupt is raised on the cap sensor
 void capacitiveFunc(){
   motor_stop();
-  
   if(check_glass_ldr())
   {
     glass_counter++;
@@ -465,17 +456,31 @@ void capacitiveFunc(){
 
 }
 
+//check the plastic
+void plasticCheck(){
+  motor_stop();
+  ///check the plastic LDR value
+  if(!check_plastic_ldr())
+  {//if it is too low, means the item is not transparent hence open the path
+    Serial.println("I am here");
+    myServoThree.write(0);
+    cli();
+    motor_run();
+    sei();
+    delay(2000);
+    myServoThree.write(75);
+  }
+  cli();
+  motor_run();
+  
+}
 
+////function call to retract crusher
+void crusherRetract(){
+linear_motor_retract();
+    motor_run();
+}
 
-////function call to activate crusher
-//void crusherActivate(){
-//Serial.println("Crusher Activating");
-//sei();
-//  delay(500);
-//linear_actuator_message();
-//linear_motor_activate();
-//cli();
-//}
 
 
 
