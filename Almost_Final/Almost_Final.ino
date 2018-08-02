@@ -85,9 +85,9 @@ U8GLIB_ST7920_128X64_1X u8g(39, 41, 43); //pin connection(E,r/w,rs)
 void setup() {
   interrupts();
   attachInterrupt(digitalPinToInterrupt(inductiveSensor), inductiveFunc ,FALLING);
-  attachInterrupt(digitalPinToInterrupt(crusherLS), crusherRetract ,RISING);
+  attachInterrupt(digitalPinToInterrupt(crusherLS), crusherRetractFunc ,RISING);
   attachInterrupt(digitalPinToInterrupt(capSensor), capacitiveFunc ,FALLING);
-  attachInterrupt(digitalPinToInterrupt(plastic_ldr_digital), plasticCheck ,HIGH);
+  attachInterrupt(digitalPinToInterrupt(plastic_ldr_digital), plasticCheckFunc ,HIGH);
   
 /// Geared motor///
   pinMode(motorPin1,OUTPUT);
@@ -154,14 +154,10 @@ void setup() {
     motor_run();
     linear_motor_retract();
 }
-
-
-//run the code forever
+//run the code repeatedly
 void loop() {
 
-
-
-//check if the LDR has been blocked by an opaque material
+//crusher checker
 if(metal_counter%3==0 && metal_counter>0 &&crusherHasRun == false)
   {
     crusherHasRun = true;
@@ -177,7 +173,7 @@ counter_autoscroll_display();
 
 
 
-///***************************USER FUNCTIONS**********************************////
+///***************************MOTOR FUNCTIONS**********************************////
 //motor activate
 void motor_run(){
   analogWrite(enablePin,255);
@@ -191,9 +187,6 @@ void motor_stop(){
   digitalWrite( motorPin2,HIGH);
   
 }
-
-
-
 //linear motor activate
 void linear_motor_activate(){
     delay(2000);
@@ -215,7 +208,7 @@ void linear_motor_stop(){
 }
 
 
-//counter start message
+///*********************************LCD FUNCTIONS************************************///
 void counter_start_message(){
 
 
@@ -245,22 +238,22 @@ lcd.clear();
 void counter_autoscroll_display(){
 lcd.setCursor(1, 1);
     // Print a message to the LCD.
-    lcd.print("Metal:");
+    lcd.print("M:");
     lcd.print(metal_counter);
      lcd.print(" ");
-    lcd.print("Glass:");
+    lcd.print("G:");
     lcd.print(glass_counter);
     lcd.print(" ");
-    lcd.print("Plastic:");
+    lcd.print("P");
     lcd.print(plastic_counter);
     lcd.print(" ");
     //delay(1000);
-    for (int positionCounter = 0; positionCounter < 10; positionCounter++) {
-        // scroll one position left:
-        lcd.scrollDisplayLeft();
-        // wait a bit:
-       
-    }
+//    for (int positionCounter = 0; positionCounter < 10; positionCounter++) {
+//        // scroll one position left:
+//        lcd.scrollDisplayLeft();
+//        // wait a bit:
+//       
+//    }
      //delay(200);
 }
 /////glcd functions//////
@@ -420,6 +413,8 @@ if(ldr_value < 200)
   return true;
   }
 }
+
+
 ///********************************INTERRUPT FUNCTIONS*************************************
 //function call after an interrupt is raised on the inductive sensor
 void inductiveFunc(){
@@ -455,28 +450,31 @@ void capacitiveFunc(){
   
 
 }
-
-//check the plastic
-void plasticCheck(){
+//check the plastic ldr
+void plasticCheckFunc(){
   motor_stop();
   ///check the plastic LDR value
   if(!check_plastic_ldr())
   {//if it is too low, means the item is not transparent hence open the path
     Serial.println("I am here");
     myServoThree.write(0);
-    cli();
-    motor_run();
     sei();
+    motor_run();
     delay(2000);
     myServoThree.write(75);
+    cli();
+  }
+  else
+  {
+    plastic_counter++;
+    motor_run();
   }
   cli();
-  motor_run();
+
   
 }
-
 ////function call to retract crusher
-void crusherRetract(){
+void crusherRetractFunc(){
 linear_motor_retract();
     motor_run();
 }
