@@ -7,14 +7,13 @@
  * Emmanuel Kinyanjui - EN292-0450/2013
  * 
  * SUPERVISORS
- * Anthony Ka
+ * Anthony Muchiri
+ * Matthew Gitukui
+ * Boniface Kariuki
  * 
  * 
  * 
  */
-
-
-
 #include <Servo.h>
 #include <Wire.h>
 #include "rgb_lcd.h"
@@ -111,8 +110,8 @@ void setup() {
   pinMode(motorPin2,OUTPUT);
 
 //ldr setup
-  pinMode(plastic_ldr_digital,INPUT_PULLUP);
-  pinMode(plastic_ldr_analog,INPUT_PULLUP);
+  pinMode(plastic_ldr_digital,INPUT);
+  pinMode(plastic_ldr_analog,INPUT);
   pinMode(glass_ldr,INPUT);
     
 ///linear motor///
@@ -163,8 +162,8 @@ void setup() {
    myServoTwo.attach(servoTwo);
    myServoTwo.write(0); //up position
    myServoThree.attach(servoThree);
-   myServoThree.write(0); //up position
-   delay(2000);
+//   myServoThree.write(0); //up position
+//   delay(2000);
    myServoThree.write(75); //up position
 
 
@@ -174,11 +173,13 @@ void setup() {
 }
 //run the code repeatedly
 void loop() {
-Serial.print("Plastic");
+Serial.print("Plastic Digital");
 Serial.println(digitalRead(plastic_ldr_digital));
-delay(500);
+Serial.print("Plastic Analog");
+Serial.println(analogRead(plastic_ldr_analog));
+delay(50);
 //crusher checker
-if(metal_counter%3==0 && metal_counter>0 &&crusherHasRun == false)
+if(metal_counter%2==0 && metal_counter>0 &&crusherHasRun == false)
   {
     crusherHasRun = true;
     motor_stop();
@@ -186,6 +187,7 @@ if(metal_counter%3==0 && metal_counter>0 &&crusherHasRun == false)
     linear_motor_activate();
   }
 idle_message();
+lcd.clear();
 counter_autoscroll_display();
 }
 
@@ -254,7 +256,8 @@ lcd.clear();
 }
 //counter auto-scroll///
 void counter_autoscroll_display(){
-lcd.setCursor(1, 1);
+  
+  lcd.setCursor(1, 1);
     // Print a message to the LCD.
     lcd.print("M:");
     lcd.print(metal_counter);
@@ -262,10 +265,10 @@ lcd.setCursor(1, 1);
     lcd.print("G:");
     lcd.print(glass_counter);
     lcd.print(" ");
-    lcd.print("P:");
-    lcd.print(plastic_counter);
-    lcd.print(" ");
-    //delay(1000);
+//    lcd.print("P:");
+//    lcd.print(plastic_counter);
+//    lcd.print(" ");
+    delay(1000);
 //    for (int positionCounter = 0; positionCounter < 10; positionCounter++) {
 //        // scroll one position left:
 //        lcd.scrollDisplayLeft();
@@ -300,7 +303,7 @@ u8g.setFont(u8g_font_unifont);
    u8g.drawStr( 25, 35, "Separation");
    u8g.drawStr( 40, 55, "FYP14-18");
   } while( u8g.nextPage() );
-  delay(3000);
+  delay(2000);
 }
 void metal_message(){
  
@@ -333,13 +336,13 @@ u8g.setFont(u8g_font_fub11);
    // If its too fast, you could add a delay
   
   }
-void plastic_message(){
+void non_plastic_message(){
  
   u8g.firstPage();  
   do {
 u8g.setFont(u8g_font_fub11);
    u8g.drawBitmapP( 60, 10, 1, 8, rook_bitmap);
-   u8g.drawStr( 0, 35, "Plastic detected");
+   u8g.drawStr( 0, 35, "Foreign Object detected");
    u8g.setFont(u8g_font_courB10);
    u8g.setFontPosTop();
    u8g.drawStr(0, 45, "(Blockade ON)"); // actual display position is (0,24)
@@ -406,7 +409,7 @@ Serial.print("Glass LDR:");
 Serial.println(ldr_value);
 sei();
 delay(500);
-if(ldr_value>50 && ldr_value<120)
+if(ldr_value>180)
   {
     return true;
   }
@@ -421,7 +424,7 @@ int ldr_value = analogRead(plastic_ldr_analog);
 Serial.print("Plastic LDR:"); 
 Serial.println(ldr_value);
 sei();
-delay(1000);
+//delay(1000);
 if(ldr_value < 500)
   {
     return false;
@@ -441,7 +444,7 @@ void inductiveFunc(){
   myServoOne.write(0);
   sei();
   delay(2000);
-  myServoOne.write(90);
+  myServoOne.write(85);
   cli();
   crusherHasRun = false;
   
@@ -455,7 +458,7 @@ void capacitiveFunc(){
     glass_message();
     sei();
     delay(500);
-  myServoTwo.write(90);
+  myServoTwo.write(85);
   sei();
   delay(2000);
   motor_run();
@@ -476,6 +479,7 @@ void plasticCheckFunc(){
   if(!check_plastic_ldr())
   {//if it is too low, means the item is not transparent hence open the path
     sei();
+    //non_plastic_message();
     myServoThree.write(0);
     delay(2000);
     motor_run();
@@ -485,12 +489,11 @@ void plasticCheckFunc(){
   }
   else
   {
-    plastic_counter++;
+   
+    sei();
     motor_run();
   }
   cli();
-
-  
 }
 ////function call to retract crusher
 void crusherRetractFunc(){
