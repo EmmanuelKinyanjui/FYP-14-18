@@ -173,11 +173,11 @@ void setup() {
 }
 //run the code repeatedly
 void loop() {
-Serial.print("Plastic Digital");
-Serial.println(digitalRead(plastic_ldr_digital));
-Serial.print("Plastic Analog");
-Serial.println(analogRead(plastic_ldr_analog));
-delay(50);
+//Serial.print("Plastic Digital");
+//Serial.println(digitalRead(plastic_ldr_digital));
+//Serial.print("Glass Analog");
+//Serial.println(analogRead(glass_ldr));
+//delay(50);
 //crusher checker
 if(metal_counter%2==0 && metal_counter>0 &&crusherHasRun == false)
   {
@@ -319,7 +319,7 @@ void metal_message(){
   u8g.drawHLine(5, 45+12, 110); // All other procedures are also affected
   } while( u8g.nextPage() ); 
    // If its too fast, you could add a delay
-  
+  clear_screen();
   }
 void glass_message(){
  
@@ -409,7 +409,7 @@ Serial.print("Glass LDR:");
 Serial.println(ldr_value);
 sei();
 delay(500);
-if(ldr_value>180)
+if(ldr_value>150)
   {
     return true;
   }
@@ -439,18 +439,21 @@ if(ldr_value < 500)
 ///********************************INTERRUPT FUNCTIONS*************************************
 //function call after an interrupt is raised on the inductive sensor
 void inductiveFunc(){
+  sei();
   metal_message();
   metal_counter++;
   myServoOne.write(0);
   sei();
   delay(2000);
   myServoOne.write(85);
-  cli();
   crusherHasRun = false;
+  cli();
   
 }
 //function call after an interrupt is raised on the cap sensor
 void capacitiveFunc(){
+  sei();
+  delay(50);
   motor_stop();
   if(check_glass_ldr())
   {
@@ -473,12 +476,11 @@ void capacitiveFunc(){
 }
 //check the plastic ldr
 void plasticCheckFunc(){
-  motor_stop();
-
   ///check the plastic LDR value
   if(!check_plastic_ldr())
   {//if it is too low, means the item is not transparent hence open the path
     sei();
+    motor_stop();
     //non_plastic_message();
     myServoThree.write(0);
     delay(2000);
