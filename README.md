@@ -10,7 +10,7 @@ Presented as _Final Year Project for BSc Mechatronic Engineering, JKUAT_
 
 **Project Description**
 
-
+See the documentation folder.
 
 
 
