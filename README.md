@@ -10,7 +10,8 @@ Presented as _Final Year Project for BSc Mechatronic Engineering, JKUAT_
 
 ## **Project Description**
 
-The project revolves around establishing an alternative mechanism of aggregating recyclable materials from garbage waste while employing engineering design principles. The project was inspired by the ever-growing call for the world to adopt a circular economy
+The project revolves around establishing an alternative mechanism of aggregating recyclable materials from garbage waste while employing engineering design principles. The project was inspired by the ever-growing call for the world to adopt a [circular economy](http://www.wrap.org.uk/about-us/about/wrap-and-circular-economy).
+
 Click _[here](https://drive.google.com/drive/folders/100yqF23lWydIxr4YD83HUyFOna_p6xJs?usp=sharing)_ to access the project contents.
 
 
